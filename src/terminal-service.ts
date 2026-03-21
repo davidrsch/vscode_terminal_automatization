@@ -141,6 +141,10 @@ export class TerminalService {
         );
 
         const execution = terminal!.shellIntegration!.executeCommand(command);
+        // Start reading immediately so the stream captures all output written
+        // during the execution. Per the VS Code API, read() only buffers data
+        // written *after* the first call — calling it post-execution yields nothing.
+        const dataStream = execution.read();
 
         const disposable = vscode.window.onDidEndTerminalShellExecution(async event => {
           if (event.execution !== execution) return;
@@ -148,9 +152,8 @@ export class TerminalService {
           clearTimeout(timeout);
 
           try {
-            const stream = event.execution.read();
             let output = '';
-            for await (const data of stream) {
+            for await (const data of dataStream) {
               output += data;
             }
             resolve(

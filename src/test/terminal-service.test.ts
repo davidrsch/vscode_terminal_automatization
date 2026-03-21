@@ -181,6 +181,11 @@ describe('TerminalService', () => {
       });
 
       const promise = service.runCommand({ command: 'echo hi', name: 'beta' });
+
+      // read() must be called before the end event fires so that the stream
+      // starts buffering data from the very beginning of the execution.
+      expect(execution.read).toHaveBeenCalledTimes(1);
+
       // Simulate shell integration ending immediately
       endHandler!({ execution, exitCode: 0 });
 
