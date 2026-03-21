@@ -8,8 +8,11 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+        env:
+            FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+        steps:
+            - uses: actions/checkout@v4
 
             - name: Setup Node.js
               uses: actions/setup-node@v4
@@ -27,7 +30,7 @@ jobs:
               run: npm test
 
             - name: Build
-              run: npm run build -- --production
+              run: npm run build
 
             - name: Publish to VS Code Marketplace
               run: npx vsce publish --no-dependencies
