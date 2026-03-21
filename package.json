@@ -69,17 +69,24 @@
     "vscode:prepublish": "npm run build",
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "package": "vsce package",
     "publish": "vsce publish"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.99.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.25.0",
-    "typescript": "^5.5.0"
+    "eslint": "^9.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.9.0",

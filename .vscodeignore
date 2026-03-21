@@ -2,3 +2,11 @@ out/
 node_modules/
 *.vsix
 .vscode-test/
+src/
+esbuild.js
+tsconfig.json
+.github/
+.eslintrc*
+eslint.config*
+*.test.ts
+CHANGELOG.md

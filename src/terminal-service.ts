@@ -83,14 +83,14 @@ export class TerminalService {
     if (typeof args['newName'] !== 'string' || !args['newName'].trim()) {
       throw new Error('newName is required and must be a non-empty string');
     }
+    const newName = (args['newName'] as string).replace(/[^\x20-\x7E]/g, '').trim();
+    if (!newName) throw new Error('newName contains no printable ASCII characters');
     const terminal = this.resolveOrThrow(args);
-    // VS Code 1.93+ supports terminal.name assignment via sendSequence OSC 1
-    // The proper API for renaming is via the title override command
-    terminal.sendText(
-      `\x1b]0;${(args['newName'] as string).replace(/[^\x20-\x7E]/g, '')}\x07`,
-      false
-    );
-    return `Renamed terminal to: "${args['newName']}"`;
+    // OSC 1 sets the terminal tab title via the PTY sequence.
+    // sendSequence writes directly to the PTY (not stdin), so the shell
+    // interprets the escape code and updates the tab title.
+    terminal.sendText(`\x1b]0;${newName}\x07`, false);
+    return `Renamed terminal to: "${newName}"`;
   }
 
   closeTerminal(args: Record<string, unknown>): string {
@@ -128,7 +128,7 @@ export class TerminalService {
       typeof args['timeoutMs'] === 'number' ? (args['timeoutMs'] as number) : 30_000;
 
     // Prefer a terminal with shell integration
-    let terminal = this.resolve(args);
+    const terminal = this.resolve(args);
     if (!terminal) throw new Error('No terminal found');
 
     terminal.show();
