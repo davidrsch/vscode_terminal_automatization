@@ -1,0 +1,88 @@
+{
+  "name": "vscode-terminal-mcp",
+  "displayName": "VS Code Terminal MCP",
+  "description": "MCP server for managing VS Code terminals — list, rename, navigate, create, close, split, and send commands",
+  "version": "0.1.0",
+  "publisher": "davidrsch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidrsch/vscode-terminal-mcp"
+  },
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": ["AI", "Other"],
+  "keywords": [
+    "mcp",
+    "terminal",
+    "ai",
+    "copilot",
+    "model context protocol",
+    "vscode",
+    "terminal management"
+  ],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscode-terminal-mcp.showStatus",
+        "title": "Show Status",
+        "category": "Terminal MCP"
+      },
+      {
+        "command": "vscode-terminal-mcp.copyMcpConfig",
+        "title": "Copy MCP Configuration",
+        "category": "Terminal MCP"
+      },
+      {
+        "command": "vscode-terminal-mcp.addToMcpJson",
+        "title": "Add to .vscode/mcp.json",
+        "category": "Terminal MCP"
+      },
+      {
+        "command": "vscode-terminal-mcp.restart",
+        "title": "Restart Server",
+        "category": "Terminal MCP"
+      }
+    ],
+    "configuration": {
+      "title": "Terminal MCP",
+      "properties": {
+        "terminalMcp.port": {
+          "type": "number",
+          "default": 6070,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port for the Terminal MCP server (default: 6070)"
+        },
+        "terminalMcp.autoConfigureMcpJson": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically add the server to .vscode/mcp.json when a workspace is opened"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.99.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "express": "^4.21.0"
+  }
+}
