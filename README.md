@@ -29,7 +29,7 @@ Search for **"VS Code Terminal MCP"** in the Extensions view (`Ctrl+Shift+X`).
 ### From VSIX
 
 ```sh
-code --install-extension vscode-terminal-mcp-*.vsix
+code --install-extension terminal-automatization-*.vsix
 ```
 
 ## Setup
@@ -47,7 +47,7 @@ Add to your `.vscode/mcp.json`:
 ```json
 {
   "servers": {
-    "vscode-terminal-mcp": {
+    "terminal-automatization": {
       "type": "sse",
       "url": "http://localhost:6070/sse"
     }
@@ -61,7 +61,7 @@ Or add to `settings.json`:
 {
   "mcp": {
     "servers": {
-      "vscode-terminal-mcp": {
+      "terminal-automatization": {
         "type": "sse",
         "url": "http://localhost:6070/sse"
       }

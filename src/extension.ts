@@ -9,7 +9,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const port = cfg.get<number>('port', 6070);
 
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.command = 'vscode-terminal-mcp.showStatus';
+  statusBarItem.command = 'terminal-automatization.showStatus';
   context.subscriptions.push(statusBarItem);
 
   await startServer(port, context);
@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('vscode-terminal-mcp.showStatus', () => {
+    vscode.commands.registerCommand('terminal-automatization.showStatus', () => {
       const url = `http://localhost:${port}/sse`;
       vscode.window.showInformationMessage(
         `Terminal MCP is running at ${url}`,
@@ -33,9 +33,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         else if (sel === 'Add to mcp.json') await setupMcpJson(port, true);
       });
     }),
-    vscode.commands.registerCommand('vscode-terminal-mcp.copyMcpConfig', () => copyMcpConfig(port)),
-    vscode.commands.registerCommand('vscode-terminal-mcp.addToMcpJson', () => setupMcpJson(port, true)),
-    vscode.commands.registerCommand('vscode-terminal-mcp.restart', async () => {
+    vscode.commands.registerCommand('terminal-automatization.copyMcpConfig', () => copyMcpConfig(port)),
+    vscode.commands.registerCommand('terminal-automatization.addToMcpJson', () => setupMcpJson(port, true)),
+    vscode.commands.registerCommand('terminal-automatization.restart', async () => {
       mcpServer?.stop();
       await startServer(port);
       vscode.window.showInformationMessage('Terminal MCP server restarted.');
@@ -77,7 +77,7 @@ async function copyMcpConfig(port: number): Promise<void> {
 function buildMcpConfig(port: number): object {
   return {
     servers: {
-      'vscode-terminal-mcp': {
+      'terminal-automatization': {
         type: 'sse',
         url: `http://localhost:${port}/sse`,
       },

@@ -1,6 +1,6 @@
 {
-  "name": "vscode-terminal-mcp",
-  "displayName": "VS Code Terminal MCP",
+  "name": "terminal-automatization",
+  "displayName": "Terminal Automatization MCP",
   "description": "MCP server for managing VS Code terminals — list, rename, navigate, create, close, split, and send commands",
   "version": "0.1.0",
   "publisher": "davidrsch",
@@ -27,22 +27,22 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-terminal-mcp.showStatus",
+        "command": "terminal-automatization.showStatus",
         "title": "Show Status",
         "category": "Terminal MCP"
       },
       {
-        "command": "vscode-terminal-mcp.copyMcpConfig",
+        "command": "terminal-automatization.copyMcpConfig",
         "title": "Copy MCP Configuration",
         "category": "Terminal MCP"
       },
       {
-        "command": "vscode-terminal-mcp.addToMcpJson",
+        "command": "terminal-automatization.addToMcpJson",
         "title": "Add to .vscode/mcp.json",
         "category": "Terminal MCP"
       },
       {
-        "command": "vscode-terminal-mcp.restart",
+        "command": "terminal-automatization.restart",
         "title": "Restart Server",
         "category": "Terminal MCP"
       }
