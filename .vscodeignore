@@ -1,12 +1,13 @@
-out/
 node_modules/
 *.vsix
 .vscode-test/
+.vscode/
 src/
 esbuild.js
 tsconfig.json
 .github/
 .eslintrc*
 eslint.config*
-*.test.ts
+vitest.config*
 CHANGELOG.md
+out/**/*.map
