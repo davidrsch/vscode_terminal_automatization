@@ -37,7 +37,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('vscode-terminal-mcp.addToMcpJson', () => setupMcpJson(port, true)),
     vscode.commands.registerCommand('vscode-terminal-mcp.restart', async () => {
       mcpServer?.stop();
-      await startServer(port, context);
+      await startServer(port);
       vscode.window.showInformationMessage('Terminal MCP server restarted.');
     })
   );
@@ -47,7 +47,7 @@ export function deactivate(): void {
   mcpServer?.stop();
 }
 
-async function startServer(port: number, context: vscode.ExtensionContext): Promise<void> {
+async function startServer(port: number): Promise<void> {
   mcpServer = new McpTerminalServer(port);
   try {
     await mcpServer.start();

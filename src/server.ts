@@ -141,11 +141,15 @@ export class McpTerminalServer {
 
       this.transports.set(transport.sessionId, transport);
 
-      mcpServer.connect(transport).catch(console.error);
+      mcpServer.connect(transport).catch((err: unknown) => {
+        console.error('[vscode-terminal-mcp] transport connect error:', err);
+      });
 
       req.on('close', () => {
         this.transports.delete(transport.sessionId);
-        mcpServer.close().catch(console.error);
+        mcpServer.close().catch((err: unknown) => {
+          console.error('[vscode-terminal-mcp] server close error:', err);
+        });
       });
     });
 
