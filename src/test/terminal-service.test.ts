@@ -162,7 +162,6 @@ describe('TerminalService', () => {
     });
 
     it('captures output via shell integration', async () => {
-      // The mock execution fires onDidEndTerminalShellExecution immediately
       const execution = {
         read: vi.fn().mockReturnValue(
           (async function* () {
@@ -182,16 +181,71 @@ describe('TerminalService', () => {
 
       const promise = service.runCommand({ command: 'echo hi', name: 'beta' });
 
-      // read() must be called before the end event fires so that the stream
-      // starts buffering data from the very beginning of the execution.
+      // The stream must be consumed concurrently (read() called before the end event)
+      // so that the for-await loop is already awaiting next() when the iterable closes.
       expect(execution.read).toHaveBeenCalledTimes(1);
 
-      // Simulate shell integration ending immediately
+      // Simulate the shell reporting command completion
       endHandler!({ execution, exitCode: 0 });
 
       const result = JSON.parse(await promise);
       expect(result.output).toBe('hello output');
       expect(result.exitCode).toBe(0);
+    });
+
+    it('resolves correctly even when end event fires before stream drains', async () => {
+      // Simulate: generator yields data asynchronously (after a microtask tick),
+      // while the end event fires synchronously right after runCommand starts.
+      // This is the exact scenario that caused the previous timeout bug.
+      let releaseData!: () => void;
+      const execution = {
+        read: vi.fn().mockReturnValue(
+          (async function* () {
+            await new Promise<void>(r => { releaseData = r; });
+            yield 'async data\n';
+          })()
+        ),
+      };
+      (mockTermB.shellIntegration!.executeCommand as ReturnType<typeof vi.fn>).mockReturnValue(
+        execution
+      );
+
+      let endHandler: ((e: any) => void) | undefined;
+      vsMock.window.onDidEndTerminalShellExecution = vi.fn((cb: (e: any) => void) => {
+        endHandler = cb;
+        return { dispose: vi.fn() };
+      });
+
+      const promise = service.runCommand({ command: 'pwd', name: 'beta' });
+
+      // End event fires immediately (before stream has yielded anything)
+      endHandler!({ execution, exitCode: 0 });
+
+      // Now release the async data — the for-await loop should still receive it
+      releaseData();
+
+      const result = JSON.parse(await promise);
+      expect(result.output).toBe('async data');
+      expect(result.exitCode).toBe(0);
+    });
+
+    it('times out when the command does not complete', async () => {
+      const execution = {
+        read: vi.fn().mockReturnValue(
+          (async function* () {
+            yield* ([] as string[]); // no-op yield to satisfy require-yield; stream never ends
+            await new Promise(() => {});
+          })()
+        ),
+      };
+      (mockTermB.shellIntegration!.executeCommand as ReturnType<typeof vi.fn>).mockReturnValue(
+        execution
+      );
+      vsMock.window.onDidEndTerminalShellExecution = vi.fn(() => ({ dispose: vi.fn() }));
+
+      await expect(
+        service.runCommand({ command: 'sleep 999', name: 'beta', timeoutMs: 50 })
+      ).rejects.toThrow('timed out after 50ms');
     });
   });
 });

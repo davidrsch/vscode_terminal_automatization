@@ -41,7 +41,7 @@ export function makeVscodeMock(terminals: Terminal[], activeTerminal?: Terminal)
       terminals,
       activeTerminal: activeTerminal ?? terminals[0] ?? undefined,
       createTerminal: vi.fn((opts: TerminalOptions) => makeTerminal(opts.name ?? 'terminal')),
-      onDidEndTerminalShellExecution: vi.fn(),
+      onDidEndTerminalShellExecution: vi.fn(() => ({ dispose: vi.fn() })),
     },
     workspace: {
       getConfiguration: vi.fn().mockReturnValue({

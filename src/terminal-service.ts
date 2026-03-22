@@ -134,40 +134,49 @@ export class TerminalService {
     terminal.show();
 
     if (terminal.shellIntegration) {
-      return new Promise<string>((resolve, reject) => {
-        const timeout = setTimeout(
+      const execution = terminal.shellIntegration.executeCommand(command);
+
+      // Consume the stream CONCURRENTLY with execution. Starting for-await inside
+      // the end-event callback is too late: the iterable's done signal fires once
+      // and if no one is awaiting next() at that moment the loop hangs forever.
+      const outputPromise = (async () => {
+        let out = '';
+        for await (const data of execution.read()) {
+          out += data;
+        }
+        return out.trim();
+      })();
+
+      // Collect the exit code from the end event independently.
+      let disposable: vscode.Disposable | undefined;
+      const exitCodePromise = new Promise<number | undefined>(resolve => {
+        disposable = vscode.window.onDidEndTerminalShellExecution(event => {
+          if (event.execution !== execution) return;
+          disposable?.dispose();
+          resolve(event.exitCode);
+        });
+      });
+
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
           () => reject(new Error(`Command timed out after ${timeoutMs}ms`)),
           timeoutMs
         );
-
-        const execution = terminal!.shellIntegration!.executeCommand(command);
-        // Start reading immediately so the stream captures all output written
-        // during the execution. Per the VS Code API, read() only buffers data
-        // written *after* the first call — calling it post-execution yields nothing.
-        const dataStream = execution.read();
-
-        const disposable = vscode.window.onDidEndTerminalShellExecution(async event => {
-          if (event.execution !== execution) return;
-          disposable.dispose();
-          clearTimeout(timeout);
-
-          try {
-            let output = '';
-            for await (const data of dataStream) {
-              output += data;
-            }
-            resolve(
-              JSON.stringify({
-                command,
-                exitCode: event.exitCode,
-                output: output.trim(),
-              })
-            );
-          } catch (err) {
-            reject(err);
-          }
-        });
       });
+
+      try {
+        const [output, exitCode] = await Promise.race([
+          Promise.all([outputPromise, exitCodePromise]),
+          timeoutPromise,
+        ]);
+        clearTimeout(timeoutHandle);
+        return JSON.stringify({ command, exitCode, output });
+      } catch (err) {
+        clearTimeout(timeoutHandle);
+        disposable?.dispose();
+        throw err;
+      }
     }
 
     // Fallback: send text without output capture
