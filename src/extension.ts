@@ -14,22 +14,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   await startServer(port);
 
-  // Register MCP server definition provider — VS Code uses this to show the
-  // extension with logo and description in the MCP SERVERS panel
-  const didChangeEmitter = new vscode.EventEmitter<void>();
-  context.subscriptions.push(didChangeEmitter);
-  context.subscriptions.push(
-    vscode.lm.registerMcpServerDefinitionProvider('terminalMcp', {
-      onDidChangeMcpServerDefinitions: didChangeEmitter.event,
-      provideMcpServerDefinitions: async () => [
-        new vscode.McpHttpServerDefinition(
-          'Terminal Automatization',
-          vscode.Uri.parse(`http://localhost:${port}/mcp`)
-        ),
-      ],
-    })
-  );
-
   context.subscriptions.push(
     vscode.commands.registerCommand('terminal-automatization.showStatus', () => {
       const url = `http://localhost:${port}/mcp`;

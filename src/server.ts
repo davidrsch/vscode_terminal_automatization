@@ -1,4 +1,6 @@
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 import express, { Request, Response } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -140,12 +142,21 @@ const TOOLS = [
 export class McpTerminalServer {
   private httpServer: http.Server | undefined;
   private readonly terminalService: TerminalService;
+  private logoDataUri: string | undefined;
 
   constructor(private readonly port: number) {
     this.terminalService = new TerminalService();
   }
 
   async start(): Promise<void> {
+    try {
+      const logoPath = path.join(__dirname, '..', 'logo.png');
+      const logoBuffer = fs.readFileSync(logoPath);
+      this.logoDataUri = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    } catch {
+      // logo.png not found — icon will be omitted
+    }
+
     const app = express();
     app.use(express.json());
 
@@ -208,8 +219,9 @@ export class McpTerminalServer {
   }
 
   private createMcpServer(): Server {
+    const icons = this.logoDataUri ? [{ src: this.logoDataUri, mimeType: 'image/png' }] : undefined;
     const server = new Server(
-      { name: 'terminal-automatization', version: '0.1.0' },
+      { name: 'terminal-automatization', version: '0.1.0', ...(icons && { icons }) },
       { capabilities: { tools: {} } }
     );
 
