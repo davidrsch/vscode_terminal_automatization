@@ -13,7 +13,7 @@
   "engines": {
     "vscode": "^1.99.0"
   },
-  "categories": ["AI", "MCP", "Other"],
+  "categories": ["AI", "Other"],
   "keywords": [
     "mcp",
     "terminal",
