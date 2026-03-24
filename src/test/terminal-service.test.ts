@@ -24,33 +24,44 @@ describe('TerminalService', () => {
   // ── listTerminals ──────────────────────────────────────────────────────────
 
   describe('listTerminals', () => {
-    it('returns all terminals with correct fields', () => {
-      const result = service.listTerminals();
+    it('returns all terminals with correct fields', async () => {
+      const result = await service.listTerminals();
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({ index: 0, name: 'alpha', isActive: true });
       expect(result[1]).toMatchObject({ index: 1, name: 'beta', isActive: false });
     });
 
-    it('marks shellIntegration correctly', () => {
-      const result = service.listTerminals();
+    it('marks shellIntegration correctly', async () => {
+      const result = await service.listTerminals();
       expect(result[0].shellIntegration).toBe(false);
       expect(result[1].shellIntegration).toBe(true);
+    });
+
+    it('resolves processId from the terminal thenable', async () => {
+      const result = await service.listTerminals();
+      expect(result[0].processId).toBe(1234);
+    });
+
+    it('includes shell and cwd fields', async () => {
+      const result = await service.listTerminals();
+      expect(result[0]).toHaveProperty('shell');
+      expect(result[0]).toHaveProperty('cwd');
     });
   });
 
   // ── getActiveTerminal ──────────────────────────────────────────────────────
 
   describe('getActiveTerminal', () => {
-    it('returns active terminal info', () => {
-      const result = service.getActiveTerminal();
+    it('returns active terminal info', async () => {
+      const result = await service.getActiveTerminal();
       expect(result).not.toBeNull();
       expect(result!.name).toBe('alpha');
       expect(result!.isActive).toBe(true);
     });
 
-    it('returns null when no terminal is active', () => {
+    it('returns null when no terminal is active', async () => {
       vsMock.window.activeTerminal = undefined as any;
-      expect(service.getActiveTerminal()).toBeNull();
+      expect(await service.getActiveTerminal()).toBeNull();
     });
   });
 
@@ -142,6 +153,30 @@ describe('TerminalService', () => {
       expect(vsMock.commands.executeCommand).toHaveBeenCalledWith(
         'workbench.action.terminal.split'
       );
+    });
+  });
+
+  // ── hideTerminal ───────────────────────────────────────────────────────────
+
+  describe('hideTerminal', () => {
+    it('calls hide on the resolved terminal', () => {
+      service.hideTerminal({ name: 'alpha' });
+      expect(mockTermA.hide).toHaveBeenCalled();
+    });
+
+    it('throws for unknown terminal', () => {
+      expect(() => service.hideTerminal({ name: 'ghost' })).toThrow('not found');
+    });
+  });
+
+  // ── closeAllTerminals ──────────────────────────────────────────────────────
+
+  describe('closeAllTerminals', () => {
+    it('disposes all terminals and returns count', () => {
+      const result = service.closeAllTerminals();
+      expect(mockTermA.dispose).toHaveBeenCalled();
+      expect(mockTermB.dispose).toHaveBeenCalled();
+      expect(result).toMatch(/2 terminals/);
     });
   });
 

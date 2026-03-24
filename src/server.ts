@@ -1,7 +1,7 @@
 import * as http from 'http';
 import express, { Request, Response } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
@@ -12,12 +12,12 @@ const TOOLS = [
   {
     name: 'list_terminals',
     description:
-      'List all open VS Code terminals. Returns index, name, active status, exit status, shell integration availability, and working directory for each terminal.',
+      'List all open VS Code terminals. Returns index, name, active status, exit status, shell type, shell integration availability, working directory, and process ID for each terminal.',
     inputSchema: { type: 'object' as const, properties: {} },
   },
   {
     name: 'get_active_terminal',
-    description: 'Get information about the currently active (focused) VS Code terminal.',
+    description: 'Get information about the currently active (focused) VS Code terminal, including shell type and working directory.',
     inputSchema: { type: 'object' as const, properties: {} },
   },
   {
@@ -91,6 +91,22 @@ const TOOLS = [
     },
   },
   {
+    name: 'hide_terminal',
+    description: 'Hide (collapse) a terminal panel without closing it.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Terminal name to hide (defaults to active)' },
+        index: { type: 'number', description: 'Terminal index (0-based) to hide' },
+      },
+    },
+  },
+  {
+    name: 'close_all_terminals',
+    description: 'Close (dispose) all open VS Code terminals at once.',
+    inputSchema: { type: 'object' as const, properties: {} },
+  },
+  {
     name: 'split_terminal',
     description: 'Create a split terminal pane from an existing terminal.',
     inputSchema: {
@@ -124,7 +140,6 @@ const TOOLS = [
 export class McpTerminalServer {
   private httpServer: http.Server | undefined;
   private readonly terminalService: TerminalService;
-  private readonly transports = new Map<string, SSEServerTransport>();
 
   constructor(private readonly port: number) {
     this.terminalService = new TerminalService();
@@ -134,47 +149,52 @@ export class McpTerminalServer {
     const app = express();
     app.use(express.json());
 
-    // SSE endpoint — clients connect here first to get the message endpoint
-    app.get('/sse', (req: Request, res: Response) => {
+    // Streamable HTTP endpoint (stateless — new transport per request)
+    app.post('/mcp', async (req: Request, res: Response) => {
       const mcpServer = this.createMcpServer();
-      const transport = new SSEServerTransport('/messages', res);
-
-      this.transports.set(transport.sessionId, transport);
-
-      mcpServer.connect(transport).catch((err: unknown) => {
-        console.error('[terminal-automatization] transport connect error:', err);
-      });
-
-      req.on('close', () => {
-        this.transports.delete(transport.sessionId);
-        mcpServer.close().catch((err: unknown) => {
-          console.error('[terminal-automatization] server close error:', err);
+      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      try {
+        await mcpServer.connect(transport);
+        await transport.handleRequest(req, res, req.body);
+        res.on('close', () => {
+          transport.close();
+          mcpServer.close().catch((err: unknown) => {
+            console.error('[terminal-automatization] server close error:', err);
+          });
         });
+      } catch (err) {
+        console.error('[terminal-automatization] request error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
+            jsonrpc: '2.0',
+            error: { code: -32603, message: 'Internal server error' },
+            id: null,
+          });
+        }
+      }
+    });
+
+    // GET /mcp — not used in stateless mode
+    app.get('/mcp', (_req: Request, res: Response) => {
+      res.status(405).json({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Method not allowed.' },
+        id: null,
       });
     });
 
-    // POST endpoint — clients post JSON-RPC messages here
-    app.post('/messages', async (req: Request, res: Response) => {
-      const sessionId = req.query['sessionId'] as string | undefined;
-      if (!sessionId) {
-        res.status(400).json({ error: 'Missing sessionId query parameter' });
-        return;
-      }
-      const transport = this.transports.get(sessionId);
-      if (!transport) {
-        res.status(404).json({ error: `No active session: ${sessionId}` });
-        return;
-      }
-      try {
-        await transport.handlePostMessage(req, res, req.body);
-      } catch (err) {
-        res.status(500).json({ error: String(err) });
-      }
+    // DELETE /mcp — not used in stateless mode
+    app.delete('/mcp', (_req: Request, res: Response) => {
+      res.status(405).json({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Method not allowed.' },
+        id: null,
+      });
     });
 
     // Health check
     app.get('/health', (_req: Request, res: Response) => {
-      res.json({ status: 'ok', sessions: this.transports.size });
+      res.json({ status: 'ok' });
     });
 
     return new Promise((resolve, reject) => {
@@ -185,7 +205,6 @@ export class McpTerminalServer {
 
   stop(): void {
     this.httpServer?.close();
-    this.transports.clear();
   }
 
   private createMcpServer(): Server {
@@ -223,10 +242,10 @@ export class McpTerminalServer {
   ): Promise<string> {
     switch (toolName) {
       case 'list_terminals':
-        return JSON.stringify(this.terminalService.listTerminals(), null, 2);
+        return JSON.stringify(await this.terminalService.listTerminals(), null, 2);
 
       case 'get_active_terminal':
-        return JSON.stringify(this.terminalService.getActiveTerminal(), null, 2);
+        return JSON.stringify(await this.terminalService.getActiveTerminal(), null, 2);
 
       case 'focus_terminal':
         return this.terminalService.focusTerminal(args);
@@ -245,6 +264,12 @@ export class McpTerminalServer {
 
       case 'split_terminal':
         return this.terminalService.splitTerminal(args);
+
+      case 'hide_terminal':
+        return this.terminalService.hideTerminal(args);
+
+      case 'close_all_terminals':
+        return this.terminalService.closeAllTerminals();
 
       case 'run_command':
         return this.terminalService.runCommand(args);

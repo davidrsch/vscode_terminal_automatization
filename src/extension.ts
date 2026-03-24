@@ -12,18 +12,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   statusBarItem.command = 'terminal-automatization.showStatus';
   context.subscriptions.push(statusBarItem);
 
-  await startServer(port, context);
+  await startServer(port);
 
-  // Re-setup mcp.json when workspace folders change
+  // Register MCP server definition provider — VS Code uses this to show the
+  // extension with logo and description in the MCP SERVERS panel
+  const didChangeEmitter = new vscode.EventEmitter<void>();
+  context.subscriptions.push(didChangeEmitter);
   context.subscriptions.push(
-    vscode.workspace.onDidChangeWorkspaceFolders(async () => {
-      if (mcpServer) await setupMcpJson(port);
+    vscode.lm.registerMcpServerDefinitionProvider('terminalMcp', {
+      onDidChangeMcpServerDefinitions: didChangeEmitter.event,
+      provideMcpServerDefinitions: async () => [
+        new vscode.McpHttpServerDefinition(
+          'Terminal Automatization',
+          vscode.Uri.parse(`http://localhost:${port}/mcp`)
+        ),
+      ],
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('terminal-automatization.showStatus', () => {
-      const url = `http://localhost:${port}/sse`;
+      const url = `http://localhost:${port}/mcp`;
       vscode.window.showInformationMessage(
         `Terminal MCP is running at ${url}`,
         'Copy Config',
@@ -52,9 +61,6 @@ async function startServer(port: number): Promise<void> {
   try {
     await mcpServer.start();
     setStatusBar(`$(terminal) MCP :${port}`, `Terminal MCP running on port ${port}`);
-
-    const autoCfg = vscode.workspace.getConfiguration('terminalMcp').get<boolean>('autoConfigureMcpJson', true);
-    if (autoCfg) await setupMcpJson(port);
   } catch (err) {
     setStatusBar('$(error) MCP failed', 'Terminal MCP failed to start');
     vscode.window.showErrorMessage(`Terminal MCP failed to start on port ${port}: ${err}`);
@@ -78,8 +84,8 @@ function buildMcpConfig(port: number): object {
   return {
     servers: {
       'terminal-automatization': {
-        type: 'sse',
-        url: `http://localhost:${port}/sse`,
+        type: 'http',
+        url: `http://localhost:${port}/mcp`,
       },
     },
   };

@@ -7,6 +7,8 @@ interface TerminalInfo {
   exitStatus: vscode.TerminalExitStatus | undefined;
   shellIntegration: boolean;
   processId: number | undefined;
+  shell: string | undefined;
+  cwd: string | undefined;
 }
 
 export class TerminalService {
@@ -31,24 +33,26 @@ export class TerminalService {
     return t;
   }
 
-  private info(terminal: vscode.Terminal, index: number): TerminalInfo {
+  private async info(terminal: vscode.Terminal, index: number): Promise<TerminalInfo> {
     return {
       index,
       name: terminal.name,
       isActive: terminal === vscode.window.activeTerminal,
       exitStatus: terminal.exitStatus,
       shellIntegration: terminal.shellIntegration !== undefined,
-      processId: undefined, // processId is async — resolved separately
+      processId: await terminal.processId,
+      shell: terminal.state.shell,
+      cwd: terminal.shellIntegration?.cwd?.toString(),
     };
   }
 
   // ─── Tools ────────────────────────────────────────────────────────────────
 
-  listTerminals(): TerminalInfo[] {
-    return this.all().map((t, i) => this.info(t, i));
+  async listTerminals(): Promise<TerminalInfo[]> {
+    return Promise.all(this.all().map((t, i) => this.info(t, i)));
   }
 
-  getActiveTerminal(): TerminalInfo | null {
+  async getActiveTerminal(): Promise<TerminalInfo | null> {
     const active = vscode.window.activeTerminal;
     if (!active) return null;
     const idx = this.all().indexOf(active);
@@ -107,6 +111,18 @@ export class TerminalService {
     terminal.show();
     terminal.sendText(args['text'], execute);
     return `Sent text to terminal "${terminal.name}"${execute ? ' (executed)' : ' (no Enter)'}`;
+  }
+
+  hideTerminal(args: Record<string, unknown>): string {
+    const terminal = this.resolveOrThrow(args);
+    terminal.hide();
+    return `Hid terminal: "${terminal.name}"`;
+  }
+
+  closeAllTerminals(): string {
+    const count = this.all().length;
+    this.all().forEach(t => t.dispose());
+    return `Closed ${count} terminal${count === 1 ? '' : 's'}`;
   }
 
   splitTerminal(args: Record<string, unknown>): string {

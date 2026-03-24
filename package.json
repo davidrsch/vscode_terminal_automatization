@@ -2,7 +2,7 @@
   "name": "terminal-automatization",
   "displayName": "Terminal Automatization MCP",
   "description": "MCP server for managing VS Code terminals — list, rename, navigate, create, close, split, and send commands",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "davidrsch",
   "icon": "logo.png",
   "license": "MIT",
@@ -60,11 +60,17 @@
         },
         "terminalMcp.autoConfigureMcpJson": {
           "type": "boolean",
-          "default": true,
-          "description": "Automatically add the server to .vscode/mcp.json when a workspace is opened"
+          "default": false,
+          "description": "Manually add the server to .vscode/mcp.json for non-VS Code MCP clients"
         }
       }
-    }
+    },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "terminalMcp",
+        "label": "Terminal Automatization MCP"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "node esbuild.js --production",

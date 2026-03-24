@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-03-24
+
+### Added
+
+- `hide_terminal` tool — hide (collapse) a terminal panel without closing it
+- `close_all_terminals` tool — close every open terminal in one call
+- `shell` field in terminal info — detected shell type (e.g. `pwsh`, `bash`, `zsh`) returned by `list_terminals` and `get_active_terminal`
+- `cwd` field in terminal info — current working directory URI (requires shell integration)
+
+### Fixed
+
+- `processId` field now correctly resolves the async `Thenable<number | undefined>` instead of always returning `undefined`
+
+### Changed
+
+- MCP server now registers via `contributes.mcpServerDefinitionProviders` + `vscode.lm.registerMcpServerDefinitionProvider` — the extension appears with its icon and metadata in the VS Code MCP SERVERS panel
+- Transport migrated from legacy SSE (`/sse` + `/messages`) to Streamable HTTP stateless mode (`/mcp`) as recommended by the MCP SDK
+- `autoConfigureMcpJson` setting default changed to `false`; the Copy/Add MCP Config commands remain available for non-VS Code clients
+
 ## [0.1.3] - 2026-03-22
 
 ### Fixed
