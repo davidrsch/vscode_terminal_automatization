@@ -37,10 +37,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 export function deactivate(): void {
-  mcpServer?.stop();
+  void mcpServer?.stop();
 }
 
 async function startServer(port: number): Promise<void> {
+  await mcpServer?.stop();
   mcpServer = new McpTerminalServer(port);
   try {
     await mcpServer.start();

@@ -214,8 +214,12 @@ export class McpTerminalServer {
     });
   }
 
-  stop(): void {
-    this.httpServer?.close();
+  stop(): Promise<void> {
+    return new Promise(resolve => {
+      if (!this.httpServer) return resolve();
+      this.httpServer.closeAllConnections?.();
+      this.httpServer.close(() => resolve());
+    });
   }
 
   private createMcpServer(): Server {
