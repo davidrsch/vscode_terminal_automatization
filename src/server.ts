@@ -144,7 +144,7 @@ export class McpTerminalServer {
   private readonly terminalService: TerminalService;
   private logoDataUri: string | undefined;
 
-  constructor(private readonly port: number) {
+  constructor(readonly port: number) {
     this.terminalService = new TerminalService();
   }
 

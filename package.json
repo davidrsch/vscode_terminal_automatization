@@ -2,7 +2,7 @@
   "name": "terminal-automatization",
   "displayName": "Terminal Automatization MCP",
   "description": "MCP server for managing VS Code terminals — list, rename, navigate, create, close, split, and send commands",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "davidrsch",
   "icon": "logo.png",
   "license": "MIT",
@@ -13,9 +13,6 @@
   "engines": {
     "vscode": "^1.99.0"
   },
-  "categories": [
-    "Other"
-  ],
   "keywords": [
     "mcp",
     "terminal",

@@ -3,34 +3,34 @@ import { McpTerminalServer } from './server';
 
 let mcpServer: McpTerminalServer | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let configuredPort = 6070;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const cfg = vscode.workspace.getConfiguration('terminalMcp');
-  const port = cfg.get<number>('port', 6070);
+  configuredPort = cfg.get<number>('port', 6070);
 
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.command = 'terminal-automatization.showStatus';
   context.subscriptions.push(statusBarItem);
 
-  await startServer(port);
+  await startServer(configuredPort);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('terminal-automatization.showStatus', () => {
-      const url = `http://localhost:${port}/mcp`;
+      const url = `http://localhost:${getActivePort()}/mcp`;
       vscode.window.showInformationMessage(
         `Terminal MCP is running at ${url}`,
         'Copy Config',
         'Add to mcp.json'
       ).then(async sel => {
-        if (sel === 'Copy Config') await copyMcpConfig(port);
-        else if (sel === 'Add to mcp.json') await setupMcpJson(port, true);
+        if (sel === 'Copy Config') await copyMcpConfig(getActivePort());
+        else if (sel === 'Add to mcp.json') await setupMcpJson(getActivePort(), true);
       });
     }),
-    vscode.commands.registerCommand('terminal-automatization.copyMcpConfig', () => copyMcpConfig(port)),
-    vscode.commands.registerCommand('terminal-automatization.addToMcpJson', () => setupMcpJson(port, true)),
+    vscode.commands.registerCommand('terminal-automatization.copyMcpConfig', () => copyMcpConfig(getActivePort())),
+    vscode.commands.registerCommand('terminal-automatization.addToMcpJson', () => setupMcpJson(getActivePort(), true)),
     vscode.commands.registerCommand('terminal-automatization.restart', async () => {
-      mcpServer?.stop();
-      await startServer(port);
+      await startServer(configuredPort);
       vscode.window.showInformationMessage('Terminal MCP server restarted.');
     })
   );
@@ -40,16 +40,33 @@ export function deactivate(): void {
   void mcpServer?.stop();
 }
 
-async function startServer(port: number): Promise<void> {
+async function startServer(basePort: number): Promise<void> {
   await mcpServer?.stop();
-  mcpServer = new McpTerminalServer(port);
-  try {
-    await mcpServer.start();
-    setStatusBar(`$(terminal) MCP :${port}`, `Terminal MCP running on port ${port}`);
-  } catch (err) {
-    setStatusBar('$(error) MCP failed', 'Terminal MCP failed to start');
-    vscode.window.showErrorMessage(`Terminal MCP failed to start on port ${port}: ${err}`);
+  mcpServer = undefined;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const tryPort = basePort + attempt;
+    const server = new McpTerminalServer(tryPort);
+    try {
+      await server.start();
+      mcpServer = server;
+      setStatusBar(`$(terminal) MCP :${tryPort}`, `Terminal MCP running on port ${tryPort}`);
+      return;
+    } catch (err) {
+      await server.stop();
+      if ((err as NodeJS.ErrnoException)?.code === 'EADDRINUSE' && attempt < 9) {
+        continue;
+      }
+      setStatusBar('$(error) MCP failed', 'Terminal MCP failed to start');
+      vscode.window.showErrorMessage(`Terminal MCP failed to start on port ${basePort}: ${err}`);
+      return;
+    }
   }
+  setStatusBar('$(error) MCP failed', 'Terminal MCP failed to start');
+  vscode.window.showErrorMessage(`Terminal MCP failed to start: all ports ${basePort}–${basePort + 9} are in use`);
+}
+
+function getActivePort(): number {
+  return mcpServer?.port ?? configuredPort;
 }
 
 function setStatusBar(text: string, tooltip: string): void {
