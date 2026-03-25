@@ -53,7 +53,7 @@ async function startServer(basePort: number): Promise<void> {
       return;
     } catch (err) {
       await server.stop();
-      if ((err as NodeJS.ErrnoException)?.code === 'EADDRINUSE' && attempt < 9) {
+      if ((err as { code?: string })?.code === 'EADDRINUSE' && attempt < 9) {
         continue;
       }
       setStatusBar('$(error) MCP failed', 'Terminal MCP failed to start');
