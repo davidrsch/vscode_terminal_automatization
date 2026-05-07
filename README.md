@@ -1,4 +1,4 @@
-# VS Code Terminal MCP ><img src="logo.png" alt="Extension image" width="140" align="right" style="margin: 0 1em 0 1em"/>
+# VS Code Terminal MCP <img src="logo.png" alt="Extension image" width="140" align="right" style="margin: 0 1em 0 1em"/>
 
 A VS Code extension that exposes an **MCP (Model Context Protocol) server** so AI assistants can **list, rename, navigate, create, close, split, and execute commands** in your VS Code terminals — using the real VS Code API, not browser automation.
 
