@@ -2,7 +2,7 @@
   "name": "terminal-automatization",
   "displayName": "Terminal Automatization MCP",
   "description": "MCP server for managing VS Code terminals — list, rename, navigate, create, close, split, and send commands",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "davidrsch",
   "icon": "logo.png",
   "license": "MIT",
@@ -22,7 +22,9 @@
     "vscode",
     "terminal management"
   ],
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -77,11 +79,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.99.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.25.0",
     "eslint": "^9.0.0",
@@ -89,7 +91,7 @@
     "vitest": "^2.0.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "express": "^4.21.0"
   }
 }

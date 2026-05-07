@@ -109,7 +109,7 @@ describe('TerminalService', () => {
 
     it('sends rename sequence to the terminal', () => {
       service.renameTerminal({ index: 0, newName: 'renamed' });
-      expect(vsMock.window.activeTerminal === mockTermA || mockTermA.sendText).toBeTruthy();
+      expect(mockTermA.sendText).toHaveBeenCalledWith('\x1b]0;renamed\x07', false);
     });
   });
 
@@ -264,7 +264,7 @@ describe('TerminalService', () => {
       expect(result.exitCode).toBe(0);
     });
 
-    it('times out when the command does not complete', async () => {
+    it('times out gracefully and returns a note', async () => {
       const execution = {
         read: vi.fn().mockReturnValue(
           (async function* () {
@@ -278,9 +278,11 @@ describe('TerminalService', () => {
       );
       vsMock.window.onDidEndTerminalShellExecution = vi.fn(() => ({ dispose: vi.fn() }));
 
-      await expect(
-        service.runCommand({ command: 'sleep 999', name: 'beta', timeoutMs: 50 })
-      ).rejects.toThrow('timed out after 50ms');
+      const result = JSON.parse(
+        await service.runCommand({ command: 'sleep 999', name: 'beta', timeoutMs: 50 })
+      );
+      expect(result.command).toBe('sleep 999');
+      expect(result.note).toMatch(/timed out/);
     });
   });
 });

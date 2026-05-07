@@ -120,8 +120,9 @@ export class TerminalService {
   }
 
   closeAllTerminals(): string {
-    const count = this.all().length;
-    this.all().forEach(t => t.dispose());
+    const terminals = [...this.all()];
+    const count = terminals.length;
+    terminals.forEach(t => t.dispose());
     return `Closed ${count} terminal${count === 1 ? '' : 's'}`;
   }
 
@@ -191,6 +192,15 @@ export class TerminalService {
       } catch (err) {
         clearTimeout(timeoutHandle);
         disposable?.dispose();
+        // On timeout, report the command as sent but output unavailable.
+        // This is common in SSH/remote terminal sessions where shell integration
+        // events don't propagate from the remote host.
+        if (err instanceof Error && err.message.startsWith('Command timed out')) {
+          return JSON.stringify({
+            command,
+            note: 'Command was sent but output capture timed out. This can happen with remote/SSH terminals where shell integration events do not propagate from the remote host. The command may have executed — check the terminal output manually.',
+          });
+        }
         throw err;
       }
     }

@@ -4,6 +4,7 @@ import * as path from 'path';
 import express, { Request, Response } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { localhostHostValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
@@ -13,17 +14,20 @@ import { TerminalService } from './terminal-service';
 const TOOLS = [
   {
     name: 'list_terminals',
+    title: 'List Terminals',
     description:
       'List all open VS Code terminals. Returns index, name, active status, exit status, shell type, shell integration availability, working directory, and process ID for each terminal.',
     inputSchema: { type: 'object' as const, properties: {} },
   },
   {
     name: 'get_active_terminal',
+    title: 'Get Active Terminal',
     description: 'Get information about the currently active (focused) VS Code terminal, including shell type and working directory.',
     inputSchema: { type: 'object' as const, properties: {} },
   },
   {
     name: 'focus_terminal',
+    title: 'Focus Terminal',
     description: 'Focus (navigate to) a specific terminal by name or index.',
     inputSchema: {
       type: 'object' as const,
@@ -35,6 +39,7 @@ const TOOLS = [
   },
   {
     name: 'create_terminal',
+    title: 'Create Terminal',
     description: 'Create a new VS Code terminal.',
     inputSchema: {
       type: 'object' as const,
@@ -52,6 +57,7 @@ const TOOLS = [
   },
   {
     name: 'rename_terminal',
+    title: 'Rename Terminal',
     description: 'Rename an existing VS Code terminal.',
     inputSchema: {
       type: 'object' as const,
@@ -65,6 +71,7 @@ const TOOLS = [
   },
   {
     name: 'close_terminal',
+    title: 'Close Terminal',
     description: 'Close (dispose) a terminal by name or index.',
     inputSchema: {
       type: 'object' as const,
@@ -76,6 +83,7 @@ const TOOLS = [
   },
   {
     name: 'send_text_to_terminal',
+    title: 'Send Text to Terminal',
     description:
       'Send text or a command to a specific terminal. Optionally executes (presses Enter). If no terminal specified, uses the active terminal.',
     inputSchema: {
@@ -94,6 +102,7 @@ const TOOLS = [
   },
   {
     name: 'hide_terminal',
+    title: 'Hide Terminal',
     description: 'Hide (collapse) a terminal panel without closing it.',
     inputSchema: {
       type: 'object' as const,
@@ -105,11 +114,13 @@ const TOOLS = [
   },
   {
     name: 'close_all_terminals',
+    title: 'Close All Terminals',
     description: 'Close (dispose) all open VS Code terminals at once.',
     inputSchema: { type: 'object' as const, properties: {} },
   },
   {
     name: 'split_terminal',
+    title: 'Split Terminal',
     description: 'Create a split terminal pane from an existing terminal.',
     inputSchema: {
       type: 'object' as const,
@@ -121,6 +132,7 @@ const TOOLS = [
   },
   {
     name: 'run_command',
+    title: 'Run Command',
     description:
       'Run a shell command in a terminal and return its output. Requires shell integration (VS Code 1.93+). Falls back to send_text if shell integration is unavailable.',
     inputSchema: {
@@ -143,9 +155,11 @@ export class McpTerminalServer {
   private httpServer: http.Server | undefined;
   private readonly terminalService: TerminalService;
   private logoDataUri: string | undefined;
+  private readonly serverVersion: string;
 
-  constructor(readonly port: number) {
+  constructor(readonly port: number, version?: string) {
     this.terminalService = new TerminalService();
+    this.serverVersion = version ?? '0.1.0';
   }
 
   async start(): Promise<void> {
@@ -159,6 +173,7 @@ export class McpTerminalServer {
 
     const app = express();
     app.use(express.json());
+    app.use(localhostHostValidation()); // DNS rebinding protection per MCP best practices
 
     // Streamable HTTP endpoint (stateless — new transport per request)
     app.post('/mcp', async (req: Request, res: Response) => {
@@ -225,7 +240,7 @@ export class McpTerminalServer {
   private createMcpServer(): Server {
     const icons = this.logoDataUri ? [{ src: this.logoDataUri, mimeType: 'image/png' }] : undefined;
     const server = new Server(
-      { name: 'terminal-automatization', version: '0.1.0', ...(icons && { icons }) },
+      { name: 'terminal-automatization', version: this.serverVersion, ...(icons && { icons }) },
       { capabilities: { tools: {} } }
     );
 

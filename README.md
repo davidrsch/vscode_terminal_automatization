@@ -4,7 +4,7 @@ A VS Code extension that exposes an **MCP (Model Context Protocol) server** so A
 
 ## Why this extension?
 
-No existing MCP server provides first-class terminal management inside VS Code. This extension bridges that gap by running an SSE-based MCP server directly inside the VS Code extension host, giving AI agents direct access to `vscode.window.terminals`.
+No existing MCP server provides first-class terminal management inside VS Code. This extension bridges that gap by running a Streamable HTTP MCP server directly inside the VS Code extension host, giving AI agents direct access to `vscode.window.terminals`.
 
 ## Tools
 
@@ -36,7 +36,7 @@ code --install-extension terminal-automatization-*.vsix
 
 Once installed, the extension:
 
-1. Starts an MCP SSE server on port **6070** (configurable).
+1. Starts an MCP Streamable HTTP server on port **6070** (configurable).
 2. Automatically writes `.vscode/mcp.json` in your workspace (configurable).
 3. Shows a status bar item — click it for options.
 
@@ -48,8 +48,8 @@ Add to your `.vscode/mcp.json`:
 {
   "servers": {
     "terminal-automatization": {
-      "type": "sse",
-      "url": "http://localhost:6070/sse"
+      "type": "http",
+      "url": "http://localhost:6070/mcp"
     }
   }
 }
@@ -62,8 +62,8 @@ Or add to `settings.json`:
   "mcp": {
     "servers": {
       "terminal-automatization": {
-        "type": "sse",
-        "url": "http://localhost:6070/sse"
+        "type": "http",
+        "url": "http://localhost:6070/mcp"
       }
     }
   }

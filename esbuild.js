@@ -14,7 +14,7 @@ async function build() {
     external: ['vscode'],
     format: 'cjs',
     platform: 'node',
-    target: 'node20',
+    target: 'node22',
     sourcemap: !production,
     minify: production,
     logLevel: 'info',

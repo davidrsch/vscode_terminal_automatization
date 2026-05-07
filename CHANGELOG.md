@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-05-07
+
+### Fixed
+
+- `setupMcpJson` no longer writes an inconsistent `"type":"sse","url":".../sse"` entry when an existing `mcp.json` is updated — it now reuses `buildMcpServerEntry` and always writes `"type":"http"` plus `"url":".../mcp"`, matching the clipboard config and the actual Streamable HTTP transport.
+- `closeAllTerminals` no longer mutates the terminal list mid-iteration — the snapshot is captured before disposal, preventing potential stale/duplicate disposal and off-by-one counts.
+- Flaky `renameTerminal` test replaced with a deterministic assertion that checks the exact ANSI sequence sent to the terminal.
+- `deactivate()` now returns a `Promise<void>` so VS Code can await server shutdown during extension deactivation, avoiding a potential race condition where the server port is not released before the process exits.
+- esbuild target updated from `node20` to `node22` to match the Node.js version bundled with VS Code 1.99+.
+
+### Changed
+
+- `run_command` timeout no longer throws an error in SSH/remote terminal sessions where shell integration events do not propagate from the remote host. Instead it returns a descriptive note that output capture timed out, allowing callers to handle the situation gracefully without treating it as a hard failure.
+- MCP server now reports the actual extension version from `package.json` instead of a hardcoded `"0.1.0"`.
+- README updated to reference the Streamable HTTP transport (`type: "http"`, `/mcp` endpoint) instead of legacy SSE.
+- All MCP tools now include a `title` field (human-readable display name) for better UI integration in MCP clients.
+- MCP SDK upgraded from 1.27.1 to 1.29.0.
+
+### Security
+
+- Added `localhostHostValidation()` middleware from the MCP SDK to protect against DNS rebinding attacks on localhost, following official MCP best practices.
+
 ## [0.1.7] - 2026-03-25
 
 ### Fixed

@@ -4,8 +4,10 @@ import { McpTerminalServer } from './server';
 let mcpServer: McpTerminalServer | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let configuredPort = 6070;
+let extensionVersion = '0.1.0';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  extensionVersion = context.extension.packageJSON?.version ?? '0.1.0';
   const cfg = vscode.workspace.getConfiguration('terminalMcp');
   configuredPort = cfg.get<number>('port', 6070);
 
@@ -36,8 +38,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 }
 
-export function deactivate(): void {
-  void mcpServer?.stop();
+export async function deactivate(): Promise<void> {
+  await mcpServer?.stop();
 }
 
 async function startServer(basePort: number): Promise<void> {
@@ -45,7 +47,7 @@ async function startServer(basePort: number): Promise<void> {
   mcpServer = undefined;
   for (let attempt = 0; attempt < 10; attempt++) {
     const tryPort = basePort + attempt;
-    const server = new McpTerminalServer(tryPort);
+    const server = new McpTerminalServer(tryPort, extensionVersion);
     try {
       await server.start();
       mcpServer = server;
@@ -82,13 +84,18 @@ async function copyMcpConfig(port: number): Promise<void> {
   vscode.window.showInformationMessage('MCP configuration copied to clipboard!');
 }
 
+function buildMcpServerEntry(port: number): { type: string; url: string; serverName?: string } {
+  return {
+    type: 'http',
+    url: `http://localhost:${port}/mcp`,
+    serverName: 'terminal-automatization',
+  };
+}
+
 function buildMcpConfig(port: number): object {
   return {
     servers: {
-      'terminal-automatization': {
-        type: 'http',
-        url: `http://localhost:${port}/mcp`,
-      },
+      'terminal-automatization': buildMcpServerEntry(port),
     },
   };
 }
@@ -101,10 +108,8 @@ async function setupMcpJson(port: number, force = false): Promise<void> {
   const vscodeDir = vscode.Uri.joinPath(wsRoot, '.vscode');
   const mcpJsonUri = vscode.Uri.joinPath(vscodeDir, 'mcp.json');
 
-  const entry = {
-    type: 'sse',
-    url: `http://localhost:${port}/sse`,
-  };
+  const entry = buildMcpServerEntry(port);
+  const serverKey = 'terminal-automatization';
 
   try {
     const raw = await vscode.workspace.fs.readFile(mcpJsonUri);
@@ -112,10 +117,10 @@ async function setupMcpJson(port: number, force = false): Promise<void> {
       Buffer.from(raw).toString('utf-8')
     );
 
-    if (!force && parsed.servers?.['vscode-terminal-mcp']) return;
+    if (!force && parsed.servers?.[serverKey]) return;
 
     parsed.servers = parsed.servers ?? {};
-    parsed.servers['vscode-terminal-mcp'] = entry;
+    parsed.servers[serverKey] = entry;
 
     await vscode.workspace.fs.writeFile(
       mcpJsonUri,
