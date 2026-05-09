@@ -178,7 +178,7 @@ export class TerminalService {
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(
           () => reject(new Error(`Command timed out after ${timeoutMs}ms`)),
-          timeoutMs
+          timeoutMs,
         );
       });
 

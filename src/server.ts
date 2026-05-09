@@ -5,151 +5,11 @@ import express, { Request, Response } from 'express';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { localhostHostValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
-import {
-  ListToolsRequestSchema,
-  CallToolRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { TerminalService } from './terminal-service';
-
-const TOOLS = [
-  {
-    name: 'list_terminals',
-    title: 'List Terminals',
-    description:
-      'List all open VS Code terminals. Returns index, name, active status, exit status, shell type, shell integration availability, working directory, and process ID for each terminal.',
-    inputSchema: { type: 'object' as const, properties: {} },
-  },
-  {
-    name: 'get_active_terminal',
-    title: 'Get Active Terminal',
-    description: 'Get information about the currently active (focused) VS Code terminal, including shell type and working directory.',
-    inputSchema: { type: 'object' as const, properties: {} },
-  },
-  {
-    name: 'focus_terminal',
-    title: 'Focus Terminal',
-    description: 'Focus (navigate to) a specific terminal by name or index.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        name: { type: 'string', description: 'Terminal name to focus' },
-        index: { type: 'number', description: 'Terminal index (0-based) to focus' },
-      },
-    },
-  },
-  {
-    name: 'create_terminal',
-    title: 'Create Terminal',
-    description: 'Create a new VS Code terminal.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        name: { type: 'string', description: 'Name for the new terminal' },
-        cwd: { type: 'string', description: 'Working directory for the new terminal' },
-        shellPath: { type: 'string', description: 'Path to the shell executable (e.g. /bin/bash)' },
-        shellArgs: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Arguments for the shell',
-        },
-      },
-    },
-  },
-  {
-    name: 'rename_terminal',
-    title: 'Rename Terminal',
-    description: 'Rename an existing VS Code terminal.',
-    inputSchema: {
-      type: 'object' as const,
-      required: ['newName'],
-      properties: {
-        name: { type: 'string', description: 'Current terminal name' },
-        index: { type: 'number', description: 'Terminal index (0-based)' },
-        newName: { type: 'string', description: 'New name for the terminal' },
-      },
-    },
-  },
-  {
-    name: 'close_terminal',
-    title: 'Close Terminal',
-    description: 'Close (dispose) a terminal by name or index.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        name: { type: 'string', description: 'Terminal name to close' },
-        index: { type: 'number', description: 'Terminal index (0-based) to close' },
-      },
-    },
-  },
-  {
-    name: 'send_text_to_terminal',
-    title: 'Send Text to Terminal',
-    description:
-      'Send text or a command to a specific terminal. Optionally executes (presses Enter). If no terminal specified, uses the active terminal.',
-    inputSchema: {
-      type: 'object' as const,
-      required: ['text'],
-      properties: {
-        name: { type: 'string', description: 'Target terminal name (optional)' },
-        index: { type: 'number', description: 'Target terminal index (optional)' },
-        text: { type: 'string', description: 'Text or command to send' },
-        execute: {
-          type: 'boolean',
-          description: 'Press Enter after sending (default: true)',
-        },
-      },
-    },
-  },
-  {
-    name: 'hide_terminal',
-    title: 'Hide Terminal',
-    description: 'Hide (collapse) a terminal panel without closing it.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        name: { type: 'string', description: 'Terminal name to hide (defaults to active)' },
-        index: { type: 'number', description: 'Terminal index (0-based) to hide' },
-      },
-    },
-  },
-  {
-    name: 'close_all_terminals',
-    title: 'Close All Terminals',
-    description: 'Close (dispose) all open VS Code terminals at once.',
-    inputSchema: { type: 'object' as const, properties: {} },
-  },
-  {
-    name: 'split_terminal',
-    title: 'Split Terminal',
-    description: 'Create a split terminal pane from an existing terminal.',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        name: { type: 'string', description: 'Terminal name to split from (defaults to active)' },
-        index: { type: 'number', description: 'Terminal index (0-based) to split from' },
-      },
-    },
-  },
-  {
-    name: 'run_command',
-    title: 'Run Command',
-    description:
-      'Run a shell command in a terminal and return its output. Requires shell integration (VS Code 1.93+). Falls back to send_text if shell integration is unavailable.',
-    inputSchema: {
-      type: 'object' as const,
-      required: ['command'],
-      properties: {
-        command: { type: 'string', description: 'Shell command to execute' },
-        name: { type: 'string', description: 'Terminal name to run in (optional)' },
-        index: { type: 'number', description: 'Terminal index (0-based) to run in (optional)' },
-        timeoutMs: {
-          type: 'number',
-          description: 'Timeout in milliseconds to wait for output (default: 30000)',
-        },
-      },
-    },
-  },
-];
+import { TOOLS } from './tools';
+import { wrapError } from './errors';
+import { logger } from './logger';
 
 export class McpTerminalServer {
   private httpServer: http.Server | undefined;
@@ -157,7 +17,13 @@ export class McpTerminalServer {
   private logoDataUri: string | undefined;
   private readonly serverVersion: string;
 
-  constructor(readonly port: number, version?: string) {
+  /** The port the server is actually listening on.
+   *  May differ from the constructor argument when port 0 is used
+   *  (OS assigns a free port). */
+  port: number;
+
+  constructor(port: number, version?: string) {
+    this.port = port;
     this.terminalService = new TerminalService();
     this.serverVersion = version ?? '0.1.0';
   }
@@ -185,11 +51,11 @@ export class McpTerminalServer {
         res.on('close', () => {
           transport.close();
           mcpServer.close().catch((err: unknown) => {
-            console.error('[terminal-automatization] server close error:', err);
+            logger.error('server', 'MCP server close error', { error: String(err) });
           });
         });
       } catch (err) {
-        console.error('[terminal-automatization] request error:', err);
+        logger.error('server', 'MCP request error', { error: String(err) });
         if (!res.headersSent) {
           res.status(500).json({
             jsonrpc: '2.0',
@@ -224,7 +90,14 @@ export class McpTerminalServer {
     });
 
     return new Promise((resolve, reject) => {
-      this.httpServer = app.listen(this.port, '127.0.0.1', resolve as () => void);
+      this.httpServer = app.listen(this.port, '127.0.0.1', () => {
+        // When port 0 is used, the OS assigns a free port — read it back
+        const addr = this.httpServer?.address();
+        if (addr && typeof addr === 'object') {
+          this.port = addr.port;
+        }
+        resolve();
+      });
       this.httpServer.on('error', reject);
     });
   }
@@ -241,7 +114,7 @@ export class McpTerminalServer {
     const icons = this.logoDataUri ? [{ src: this.logoDataUri, mimeType: 'image/png' }] : undefined;
     const server = new Server(
       { name: 'terminal-automatization', version: this.serverVersion, ...(icons && { icons }) },
-      { capabilities: { tools: {} } }
+      { capabilities: { tools: {} } },
     );
 
     server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -252,11 +125,16 @@ export class McpTerminalServer {
         const result = await this.dispatch(name, args as Record<string, unknown>);
         return { content: [{ type: 'text' as const, text: result }] };
       } catch (err) {
+        const errorResult = wrapError(err);
+        logger.warn('server', `Tool '${name}' failed`, {
+          code: errorResult.code,
+          message: errorResult.message,
+        });
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+              text: `[${errorResult.code}] ${errorResult.message}`,
             },
           ],
           isError: true,
@@ -267,10 +145,7 @@ export class McpTerminalServer {
     return server;
   }
 
-  private async dispatch(
-    toolName: string,
-    args: Record<string, unknown>
-  ): Promise<string> {
+  private async dispatch(toolName: string, args: Record<string, unknown>): Promise<string> {
     switch (toolName) {
       case 'list_terminals':
         return JSON.stringify(await this.terminalService.listTerminals(), null, 2);

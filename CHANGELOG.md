@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-09
+
+### Added
+
+- **Port 0 by default** — the OS now assigns a free port instead of hardcoded 6070. Eliminates all port conflicts with other MCP servers or services. The status bar always shows the actual listening port.
+- **Atomic `.vscode/mcp.json` writes** — config is written to a temp file and renamed atomically, preventing corruption from concurrent writes by other extensions.
+- **`terminalMcp.enableHttpServer` setting** — users who only need VS Code's built-in MCP support can disable the HTTP server entirely, freeing the port.
+- **`mcpServerDefinitionProviders` manifest entry** — the extension now appears under the `@mcp` filter in VS Code's Extensions view for easier discovery.
+- **Prettier formatter** — all source code is now formatted consistently (`.prettierrc` with 100 columns, single quotes, trailing commas).
+- **Typed error codes** (`src/errors.ts`) — `ErrorCode` enum with `McpErrorResult` type and `makeError`/`wrapError` factories for consistent MCP error responses.
+- **Structured JSON logger** (`src/logger.ts`) — every log entry is a JSON line with timestamp, level, module, and message for machine-parseable logs.
+- **Tool definitions extracted** (`src/tools.ts`) — the `TOOLS` array and `McpTool` type are now in a separate module, testable independently.
+- **Server test suite** (`src/test/server.test.ts` — 14 tests) covering HTTP lifecycle, endpoint registration, and dispatch of all 11 tools with error handling.
+- **Tool metadata tests** (`src/test/tools.test.ts` — 6 tests) validating unique names, snake_case convention, required fields, and mandatory tool set.
+- **Test coverage** — v8 provider with text + lcov reporters, 47 tests across 3 files.
+- **`npm run check`** — single command that runs format → lint → typecheck → test → build.
+- **`npm run typecheck`** — TypeScript type checking via `tsc --noEmit`.
+- **Publish workflow parity with playbooks-mcp:**
+  - Open VSX dual publishing (`npm run publish:ovsx`)
+  - Version tag validation (tag must match `package.json` version)
+  - GitHub Release naming (`terminal-automatization v0.2.0`)
+  - Auto-generated release notes
+  - VSIX renamed with release tag (`terminal-automatization-v0.2.0.vsix`)
+  - Split into `build-vsix` + `publish` jobs with artifact handoff
+  - PR trigger for dry-run verification
+  - `--skip-duplicate` for idempotent publish runs
+  - `@vscode/vsce` and `ovsx` as devDependencies (modern tooling)
+
+### Changed
+
+- **Port handling simplified** — `startServer` now does a two-stage bind: try the configured port, then fall back to port 0 (OS-guaranteed). Replaces the old 10-port 6070–6079 loop.
+- **McpTerminalServer.port** is now mutable — after binding, the actual OS-assigned port is read from `server.address()` and stored.
+- **Default port changed** from `6070` to `0` in both `package.json` configuration and `extension.ts` default variable.
+- **Publish workflow upgraded** from single-job monolithic to dual-job `build-vsix` → `publish` with artifact download.
+- **CI workflow** now includes a `Format check` step after lint.
+- **ESLint** now allows `console.log` (used by the structured logger).
+- **Vitest config** now includes coverage configuration and a 30-second test timeout.
+- **`@vscode/vsce`** now used as a devDependency instead of legacy `npx vsce`.
+
+### Fixed
+
+- **Port conflicts eliminated** — `port: 0` delegates to the OS, which always picks a free port. No more `EADDRINUSE` loops.
+- **`.vscode/mcp.json` corruption risk eliminated** — atomic write-then-rename prevents partial writes.
+- **All predefined error codes are now unused** — `ErrorCode` and `makeError` removed from `server.ts` import; only `wrapError` is used at the MCP transport boundary.
+
 ## [0.1.8] - 2026-05-07
 
 ### Fixed

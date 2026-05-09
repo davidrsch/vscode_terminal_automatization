@@ -89,13 +89,13 @@ describe('TerminalService', () => {
     it('creates with name and cwd', () => {
       service.createTerminal({ name: 'new', cwd: '/tmp' });
       expect(vsMock.window.createTerminal).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'new', cwd: '/tmp' })
+        expect.objectContaining({ name: 'new', cwd: '/tmp' }),
       );
     });
 
     it('throws when shellArgs contains non-strings', () => {
       expect(() => service.createTerminal({ shellArgs: [1, 2] })).toThrow(
-        'shellArgs must be an array of strings'
+        'shellArgs must be an array of strings',
       );
     });
   });
@@ -151,7 +151,7 @@ describe('TerminalService', () => {
       service.splitTerminal({ name: 'alpha' });
       expect(mockTermA.show).toHaveBeenCalled();
       expect(vsMock.commands.executeCommand).toHaveBeenCalledWith(
-        'workbench.action.terminal.split'
+        'workbench.action.terminal.split',
       );
     });
   });
@@ -185,7 +185,7 @@ describe('TerminalService', () => {
   describe('runCommand', () => {
     it('throws when command is empty', async () => {
       await expect(service.runCommand({ command: '   ', name: 'alpha' })).rejects.toThrow(
-        'command is required'
+        'command is required',
       );
     });
 
@@ -201,11 +201,11 @@ describe('TerminalService', () => {
         read: vi.fn().mockReturnValue(
           (async function* () {
             yield 'hello output\n';
-          })()
+          })(),
         ),
       };
       (mockTermB.shellIntegration!.executeCommand as ReturnType<typeof vi.fn>).mockReturnValue(
-        execution
+        execution,
       );
 
       let endHandler: ((e: any) => void) | undefined;
@@ -236,13 +236,15 @@ describe('TerminalService', () => {
       const execution = {
         read: vi.fn().mockReturnValue(
           (async function* () {
-            await new Promise<void>(r => { releaseData = r; });
+            await new Promise<void>(r => {
+              releaseData = r;
+            });
             yield 'async data\n';
-          })()
+          })(),
         ),
       };
       (mockTermB.shellIntegration!.executeCommand as ReturnType<typeof vi.fn>).mockReturnValue(
-        execution
+        execution,
       );
 
       let endHandler: ((e: any) => void) | undefined;
@@ -268,18 +270,18 @@ describe('TerminalService', () => {
       const execution = {
         read: vi.fn().mockReturnValue(
           (async function* () {
-            yield* ([] as string[]); // no-op yield to satisfy require-yield; stream never ends
+            yield* [] as string[]; // no-op yield to satisfy require-yield; stream never ends
             await new Promise(() => {});
-          })()
+          })(),
         ),
       };
       (mockTermB.shellIntegration!.executeCommand as ReturnType<typeof vi.fn>).mockReturnValue(
-        execution
+        execution,
       );
       vsMock.window.onDidEndTerminalShellExecution = vi.fn(() => ({ dispose: vi.fn() }));
 
       const result = JSON.parse(
-        await service.runCommand({ command: 'sleep 999', name: 'beta', timeoutMs: 50 })
+        await service.runCommand({ command: 'sleep 999', name: 'beta', timeoutMs: 50 }),
       );
       expect(result.command).toBe('sleep 999');
       expect(result.note).toMatch(/timed out/);

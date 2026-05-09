@@ -9,7 +9,7 @@ export function makeTerminal(
     isActive?: boolean;
     exitStatus?: TerminalExitStatus;
     shellIntegration?: boolean;
-  } = {}
+  } = {},
 ): Terminal {
   return {
     name,
@@ -22,7 +22,11 @@ export function makeTerminal(
           cwd: undefined,
           env: { value: {}, isArray: false, isTrusted: true },
           executeCommand: vi.fn().mockReturnValue({
-            read: vi.fn().mockReturnValue((async function* () { yield 'hello\n'; })()),
+            read: vi.fn().mockReturnValue(
+              (async function* () {
+                yield 'hello\n';
+              })(),
+            ),
           }),
         }
       : undefined,

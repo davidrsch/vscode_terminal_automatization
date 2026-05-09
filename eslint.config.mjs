@@ -23,7 +23,7 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'no-console': ['warn', { allow: ['error', 'warn'] }],
+      'no-console': ['warn', { allow: ['error', 'warn', 'log'] }],
       'eqeqeq': 'error',
     },
   },

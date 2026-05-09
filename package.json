@@ -2,7 +2,7 @@
   "name": "terminal-automatization",
   "displayName": "Terminal Automatization MCP",
   "description": "MCP server for managing VS Code terminals — list, rename, navigate, create, close, split, and send commands",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "publisher": "davidrsch",
   "icon": "logo.png",
   "license": "MIT",
@@ -27,6 +27,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "terminal-automatization",
+        "label": "Terminal MCP"
+      }
+    ],
     "commands": [
       {
         "command": "terminal-automatization.showStatus",
@@ -54,10 +60,15 @@
       "properties": {
         "terminalMcp.port": {
           "type": "number",
-          "default": 6070,
-          "minimum": 1024,
+          "default": 0,
+          "minimum": 0,
           "maximum": 65535,
-          "description": "Port for the Terminal MCP server (default: 6070)"
+          "description": "Port for the Terminal MCP HTTP server (default: 0 = OS picks a free port). Set a fixed port if external MCP clients need a predictable address."
+        },
+        "terminalMcp.enableHttpServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start an HTTP server for external MCP clients (Claude Desktop, Cline, etc.). Disable if you only use VS Code's built-in MCP support to avoid port conflicts with other MCP servers."
         },
         "terminalMcp.autoConfigureMcpJson": {
           "type": "boolean",
@@ -72,10 +83,16 @@
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "lint": "eslint src",
+    "format": "prettier --check \"src/**/*.ts\"",
+    "format:fix": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package": "vsce package --no-dependencies",
-    "publish": "vsce publish --no-dependencies"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run format && npm run typecheck && npm run test && npm run build",
+    "package": "@vscode/vsce package --no-dependencies",
+    "publish:vscode": "@vscode/vsce publish --no-dependencies --skip-duplicate",
+    "publish:ovsx": "ovsx publish --skip-duplicate"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -84,9 +101,12 @@
     "@types/vscode": "^1.99.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.25.0",
     "eslint": "^9.0.0",
+    "ovsx": "^0.10.0",
+    "prettier": "^3.3.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
   },
