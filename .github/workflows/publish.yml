@@ -91,6 +91,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "terminal-automatization ${{ github.ref_name }}"
+          name: "vscode_terminal_automatization ${{ github.ref_name }}"
           files: "*.vsix"
           generate_release_notes: true
