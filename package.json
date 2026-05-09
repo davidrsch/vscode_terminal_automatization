@@ -90,9 +90,9 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run format && npm run typecheck && npm run test && npm run build",
-    "package": "npx vsce package --no-dependencies",
-    "publish:vscode": "npx vsce publish --no-dependencies --skip-duplicate",
-    "publish:ovsx": "npx ovsx publish --skip-duplicate"
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "publish:vscode": "npx @vscode/vsce publish --packagePath *.vsix --skip-duplicate",
+    "publish:ovsx": "npx ovsx publish *.vsix --skip-duplicate"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
