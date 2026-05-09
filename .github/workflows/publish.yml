@@ -79,12 +79,12 @@ jobs:
           path: .
 
       - name: Publish to VS Code Marketplace
-        run: npm run publish:vscode
+        run: npx @vscode/vsce publish --packagePath *.vsix --skip-duplicate
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
       - name: Publish to Open VSX Registry
-        run: npm run publish:ovsx
+        run: npx ovsx publish *.vsix --skip-duplicate
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
 
